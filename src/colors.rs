@@ -1,36 +1,61 @@
 use std::sync::LazyLock;
 
+#[allow(dead_code)]
 pub struct Colors {
-  pub reset:   &'static str,
-  pub blue:    &'static str,
-  pub cyan:    &'static str,
-  pub green:   &'static str,
-  pub yellow:  &'static str,
-  pub red:     &'static str,
-  pub magenta: &'static str,
+  pub reset:       &'static str,
+  pub bold:        &'static str,
+  pub dim:         &'static str,
+  pub blue:        &'static str,
+  pub cyan:        &'static str,
+  pub green:       &'static str,
+  pub yellow:      &'static str,
+  pub red:         &'static str,
+  pub magenta:     &'static str,
+  pub white:       &'static str,
+  pub bold_blue:   &'static str,
+  pub bold_cyan:   &'static str,
+  pub bold_green:  &'static str,
+  pub bold_yellow: &'static str,
+  pub bold_white:  &'static str,
 }
 
 impl Colors {
   const fn new(is_no_color: bool) -> Self {
     if is_no_color {
       Self {
-        reset:   "",
-        blue:    "",
-        cyan:    "",
-        green:   "",
-        yellow:  "",
-        red:     "",
-        magenta: "",
+        reset:       "",
+        bold:        "",
+        dim:         "",
+        blue:        "",
+        cyan:        "",
+        green:       "",
+        yellow:      "",
+        red:         "",
+        magenta:     "",
+        white:       "",
+        bold_blue:   "",
+        bold_cyan:   "",
+        bold_green:  "",
+        bold_yellow: "",
+        bold_white:  "",
       }
     } else {
       Self {
-        reset:   "\x1b[0m",
-        blue:    "\x1b[34m",
-        cyan:    "\x1b[36m",
-        green:   "\x1b[32m",
-        yellow:  "\x1b[33m",
-        red:     "\x1b[31m",
-        magenta: "\x1b[35m",
+        reset:       "\x1b[0m",
+        bold:        "\x1b[1m",
+        dim:         "\x1b[2m",
+        blue:        "\x1b[34m",
+        cyan:        "\x1b[36m",
+        green:       "\x1b[32m",
+        yellow:      "\x1b[33m",
+        red:         "\x1b[31m",
+        magenta:     "\x1b[35m",
+        white:       "\x1b[37m",
+        bold_blue:   "\x1b[1;34m",
+        bold_cyan:   "\x1b[1;36m",
+        bold_green:  "\x1b[1;32m",
+        bold_yellow: "\x1b[1;33m",
+        bold_white:  "\x1b[1;37m",
       }
     }
   }
@@ -41,41 +66,3 @@ pub static COLORS: LazyLock<Colors> = LazyLock::new(|| {
   let is_no_color = unsafe { !libc::getenv(NO_COLOR).is_null() };
   Colors::new(is_no_color)
 });
-
-#[must_use]
-#[cfg_attr(feature = "hotpath", hotpath::measure)]
-pub fn print_dots() -> String {
-  // Pre-calculate capacity: 6 color codes + "  " (glyph + 2 spaces) per color
-  const GLYPH: &str = "";
-  let capacity = COLORS.blue.len()
-    + COLORS.cyan.len()
-    + COLORS.green.len()
-    + COLORS.yellow.len()
-    + COLORS.red.len()
-    + COLORS.magenta.len()
-    + COLORS.reset.len()
-    + (GLYPH.len() + 2) * 6;
-
-  let mut result = String::with_capacity(capacity);
-  result.push_str(COLORS.blue);
-  result.push_str(GLYPH);
-  result.push_str("  ");
-  result.push_str(COLORS.cyan);
-  result.push_str(GLYPH);
-  result.push_str("  ");
-  result.push_str(COLORS.green);
-  result.push_str(GLYPH);
-  result.push_str("  ");
-  result.push_str(COLORS.yellow);
-  result.push_str(GLYPH);
-  result.push_str("  ");
-  result.push_str(COLORS.red);
-  result.push_str(GLYPH);
-  result.push_str("  ");
-  result.push_str(COLORS.magenta);
-  result.push_str(GLYPH);
-  result.push_str("  ");
-  result.push_str(COLORS.reset);
-
-  result
-}

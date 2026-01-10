@@ -3,6 +3,7 @@ pub mod desktop;
 pub mod release;
 pub mod syscall;
 pub mod system;
+pub mod table;
 pub mod uptime;
 
 use std::mem::MaybeUninit;
