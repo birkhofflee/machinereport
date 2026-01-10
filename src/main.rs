@@ -6,7 +6,7 @@ mod table;
 
 use std::io::{self, Write};
 
-pub use microfetch_lib::UtsName;
+pub use machinereport_lib::UtsName;
 
 use crate::{
   release::{get_os_pretty_name, get_system_info},
@@ -37,7 +37,7 @@ use crate::{
   },
 };
 
-const REPORT_TITLE: &str = "MICROFETCH";
+const REPORT_TITLE: &str = "MACHINEREPORT";
 const REPORT_SUBTITLE: &str = "SYSTEM REPORT";
 
 #[cfg_attr(feature = "hotpath", hotpath::main)]
@@ -126,11 +126,7 @@ fn print_system_report(
 
   // Hardware section
   write_divider(&mut output, DividerStyle::Middle);
-  write_row(
-    &mut output,
-    "CPU",
-    &format!("{cpu_model} ({cpu_cores})"),
-  );
+  write_row(&mut output, "CPU", &format!("{cpu_model} ({cpu_cores})"));
   write_row(&mut output, "GPU", &gpu);
 
   // Load averages with bar graphs
@@ -148,18 +144,16 @@ fn print_system_report(
 
   // Memory section
   write_divider(&mut output, DividerStyle::Middle);
-  let mem_info = format!(
-    "{mem_used_gb:.2}/{mem_total_gb:.2} GiB [{mem_percent}%]"
-  );
+  let mem_info =
+    format!("{mem_used_gb:.2}/{mem_total_gb:.2} GiB [{mem_percent}%]");
   let mem_bar = bar_graph(mem_used_kb as f64, mem_total_kb as f64, 32);
   write_row(&mut output, "MEMORY", &mem_info);
   write_row(&mut output, "MEM USAGE", &mem_bar);
 
   // Swap section (only if swap exists)
   if swap_total_kb > 0 {
-    let swap_info = format!(
-      "{swap_used_gb:.2}/{swap_total_gb:.2} GiB [{swap_percent}%]"
-    );
+    let swap_info =
+      format!("{swap_used_gb:.2}/{swap_total_gb:.2} GiB [{swap_percent}%]");
     let swap_bar = bar_graph(swap_used_kb as f64, swap_total_kb as f64, 32);
     write_row(&mut output, "SWAP", &swap_info);
     write_row(&mut output, "SWAP USAGE", &swap_bar);
@@ -167,9 +161,8 @@ fn print_system_report(
 
   // Disk section
   write_divider(&mut output, DividerStyle::Middle);
-  let disk_info = format!(
-    "{disk_used_gb:.2}/{disk_total_gb:.2} GB [{disk_percent}%]"
-  );
+  let disk_info =
+    format!("{disk_used_gb:.2}/{disk_total_gb:.2} GB [{disk_percent}%]");
   let disk_bar = bar_graph(disk_used as f64, disk_total as f64, 32);
   write_row(&mut output, "DISK (/)", &disk_info);
   write_row(&mut output, "DISK USAGE", &disk_bar);

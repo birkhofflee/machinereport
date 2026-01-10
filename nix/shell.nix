@@ -12,7 +12,7 @@
   gnuplot,
 }:
 mkShell {
-  name = "microfetch";
+  name = "machinereport";
   strictDeps = true;
   nativeBuildInputs = [
     cargo

@@ -44,10 +44,10 @@ in
     };
 
     meta = {
-      description = "Microscopic fetch script in Rust, for NixOS systems";
-      homepage = "https://github.com/NotAShelf/microfetch";
+      description = "Fast system fetch tool in Rust for Linux";
+      homepage = "https://github.com/yourusername/machinereport";
       license = lib.licenses.gpl3Only;
-      maintainers = [lib.maintainers.NotAShelf];
-      mainProgram = "microfetch";
+      maintainers = [];
+      mainProgram = "machinereport";
     };
   }

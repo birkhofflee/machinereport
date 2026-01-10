@@ -1,5 +1,5 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use microfetch_lib::{
+use machinereport_lib::{
   UtsName,
   colors::print_dots,
   desktop::get_desktop_info,
