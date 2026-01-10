@@ -9,6 +9,7 @@ pub struct TableConfig {
 }
 
 impl TableConfig {
+  #[must_use] 
   pub const fn new(name_width: usize, data_width: usize) -> Self {
     Self {
       name_width,
@@ -17,12 +18,14 @@ impl TableConfig {
   }
 
   /// Total width including borders and padding: "│ NAME │ DATA │"
+  #[must_use] 
   pub const fn total_width(&self) -> usize {
     // │ + space + name + space + │ + space + data + space + │
     1 + 1 + self.name_width + 1 + 1 + 1 + self.data_width + 1 + 1
   }
 
   /// Position of the middle column separator (after "│ NAME ")
+  #[must_use] 
   pub const fn middle_pos(&self) -> usize {
     1 + 1 + self.name_width + 1
   }
@@ -31,25 +34,40 @@ impl TableConfig {
 /// Default table configuration matching the TR-100 style
 pub const TABLE_CONFIG: TableConfig = TableConfig::new(13, 32);
 
-/// Writes the header with the decorative top border
+/// Writes the header with the decorative top border (with gradient colors)
 pub fn write_header(buf: &mut String, title: &str, subtitle: &str) {
   let total = TABLE_CONFIG.total_width();
   let c = &*COLORS;
+  let inner_width = total - 2; // excluding ┌ and ┐
 
-  // Top border: ┌┬┬┬...┬┐
+  // Top border: ┌┬┬┬...┬┐ with gradient
   buf.push_str(c.dim);
   buf.push('┌');
-  for _ in 0..total - 2 {
-    buf.push('┬');
+
+  if c.reset.is_empty() {
+    for _ in 0..inner_width {
+      buf.push('┬');
+    }
+  } else {
+    write_gradient_chars(buf, '┬', inner_width);
+    buf.push_str(c.dim);
   }
+
   buf.push_str("┐\n");
 
-  // Border below top: ├┴┴┴...┴┤
+  // Border below top: ├┴┴┴...┴┤ (also gradient)
   buf.push('├');
-  for _ in 0..total - 2 {
-    buf.push('┴');
+
+  if c.reset.is_empty() {
+    for _ in 0..inner_width {
+      buf.push('┴');
+    }
+  } else {
+    write_gradient_chars(buf, '┴', inner_width);
+    buf.push_str(c.dim);
   }
-  buf.push_str("┤");
+
+  buf.push('┤');
   buf.push_str(c.reset);
   buf.push('\n');
 
@@ -58,6 +76,51 @@ pub fn write_header(buf: &mut String, title: &str, subtitle: &str) {
 
   // Centered subtitle
   write_centered_colored(buf, subtitle, c.cyan);
+}
+
+/// Write characters with terminal colors arranged in gradient order
+fn write_gradient_chars(buf: &mut String, ch: char, width: usize) {
+  let c = &*COLORS;
+
+  // Terminal colors arranged in a gradient-like order:
+  // red -> yellow -> green -> cyan -> blue -> magenta
+  // Using both normal (30-37) and bright (90-97) variants for smoother
+  // transition
+  const GRADIENT_COLORS: &[u8] = &[
+    1,  // red
+    9,  // bright red
+    3,  // yellow
+    11, // bright yellow
+    2,  // green
+    10, // bright green
+    6,  // cyan
+    14, // bright cyan
+    4,  // blue
+    12, // bright blue
+    5,  // magenta
+    13, // bright magenta
+  ];
+
+  let num_colors = GRADIENT_COLORS.len();
+  let chars_per_color = width / num_colors;
+  let remainder = width % num_colors;
+
+  for (idx, &color) in GRADIENT_COLORS.iter().enumerate() {
+    let extra = usize::from(idx < remainder);
+    let segment_width = chars_per_color + extra;
+
+    // Use foreground color codes (30-37 for normal, 90-97 for bright)
+    if color < 8 {
+      buf.push_str(&format!("\x1b[3{color}m"));
+    } else {
+      buf.push_str(&format!("\x1b[9{}m", color - 8));
+    }
+
+    for _ in 0..segment_width {
+      buf.push(ch);
+    }
+  }
+  buf.push_str(c.reset);
 }
 
 /// Writes centered text within the table with color
@@ -83,7 +146,7 @@ fn write_centered_colored(buf: &mut String, text: &str, color: &str) {
     buf.push(' ');
   }
   buf.push_str(c.dim);
-  buf.push_str("│");
+  buf.push('│');
   buf.push_str(c.reset);
   buf.push('\n');
 }
@@ -254,6 +317,7 @@ fn truncate_with_ansi(s: &str, max_visible: usize) -> String {
 
 /// Generate a bar graph with colors based on usage percentage
 /// Low usage: green, medium: yellow, high: red
+#[must_use] 
 pub fn bar_graph(used: f64, total: f64, width: usize) -> String {
   let c = &*COLORS;
   let percent = if total > 0.0 { used / total } else { 0.0 };
@@ -283,6 +347,7 @@ pub fn bar_graph(used: f64, total: f64, width: usize) -> String {
 }
 
 /// Compact uptime format like: 1d 2h 30m
+#[must_use] 
 pub fn format_uptime_compact(seconds: u64) -> String {
   let days = seconds / 86400;
   let hours = (seconds / 3600) % 24;
@@ -291,69 +356,16 @@ pub fn format_uptime_compact(seconds: u64) -> String {
   let mut result = String::with_capacity(16);
 
   if days > 0 {
-    let _ = write!(result, "{}d ", days);
+    let _ = write!(result, "{days}d ");
   }
   if hours > 0 || days > 0 {
-    let _ = write!(result, "{}h ", hours);
+    let _ = write!(result, "{hours}h ");
   }
-  let _ = write!(result, "{}m", minutes);
+  let _ = write!(result, "{minutes}m");
 
   if result.is_empty() || result == "0m" {
     result = "<1m".to_string();
   }
 
   result
-}
-
-/// Write a full-width row with custom content (no label column)
-pub fn write_color_row(buf: &mut String) {
-  let c = &*COLORS;
-  let total_inner = TABLE_CONFIG.total_width() - 2; // minus borders
-
-  // If NO_COLOR is set, skip this entirely
-  if c.reset.is_empty() {
-    return;
-  }
-
-  // Row 1: Normal colors (40-47)
-  buf.push_str(c.dim);
-  buf.push_str("│");
-  buf.push_str(c.reset);
-
-  // Calculate block width: we have 8 colors, try to fit them evenly
-  let block_width = total_inner / 8;
-  let remainder = total_inner % 8;
-
-  for i in 0..8u8 {
-    let extra = if (i as usize) < remainder { 1 } else { 0 };
-    let width = block_width + extra;
-    buf.push_str(&format!("\x1b[4{}m", i));
-    for _ in 0..width {
-      buf.push(' ');
-    }
-  }
-  buf.push_str(c.reset);
-  buf.push_str(c.dim);
-  buf.push_str("│");
-  buf.push_str(c.reset);
-  buf.push('\n');
-
-  // Row 2: Bright colors (100-107)
-  buf.push_str(c.dim);
-  buf.push_str("│");
-  buf.push_str(c.reset);
-
-  for i in 0..8u8 {
-    let extra = if (i as usize) < remainder { 1 } else { 0 };
-    let width = block_width + extra;
-    buf.push_str(&format!("\x1b[10{}m", i));
-    for _ in 0..width {
-      buf.push(' ');
-    }
-  }
-  buf.push_str(c.reset);
-  buf.push_str(c.dim);
-  buf.push_str("│");
-  buf.push_str(c.reset);
-  buf.push('\n');
 }

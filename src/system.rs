@@ -53,11 +53,10 @@ pub fn get_local_ip() -> String {
 
   // Now read the interface's IP from /sys/class/net/{iface}/...
   // Or use getifaddrs via libc
-  if let Some(iface) = default_iface {
-    if let Some(ip) = get_interface_ip(&iface) {
+  if let Some(iface) = default_iface
+    && let Some(ip) = get_interface_ip(&iface) {
       return ip;
     }
-  }
 
   // Fallback: try to find any non-loopback IP from fib_trie Local section
   if let Ok(bytes_read) = read_file_fast("/proc/net/fib_trie", &mut buffer) {
@@ -77,8 +76,8 @@ pub fn get_local_ip() -> String {
 
       if in_local_section {
         // Check if this is an IP line
-        if trimmed.starts_with("|-- ") {
-          if let Some(ip) = trimmed.strip_prefix("|-- ") {
+        if trimmed.starts_with("|-- ")
+          && let Some(ip) = trimmed.strip_prefix("|-- ") {
             let ip = ip.trim();
             // Basic validation and skip loopback/link-local
             if ip.chars().filter(|&c| c == '.').count() == 3
@@ -89,10 +88,9 @@ pub fn get_local_ip() -> String {
               last_ip = Some(ip);
             }
           }
-        }
         // Check if the previous IP is a host LOCAL (not broadcast)
-        if trimmed == "/32 host LOCAL" {
-          if let Some(ip) = last_ip {
+        if trimmed == "/32 host LOCAL"
+          && let Some(ip) = last_ip {
             // Prefer private IPs (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
             if ip.starts_with("192.168.")
               || ip.starts_with("10.")
@@ -106,7 +104,6 @@ pub fn get_local_ip() -> String {
               return ip.to_string();
             }
           }
-        }
       }
     }
   }
@@ -150,7 +147,7 @@ fn get_interface_ip(iface: &str) -> Option<String> {
     }
 
     // Extract IP from sockaddr_in
-    let addr: *const libc::sockaddr_in = &req.ifr_addr as *const _ as *const _;
+    let addr: *const libc::sockaddr_in = (&raw const req.ifr_addr).cast();
     let ip = (*addr).sin_addr.s_addr;
 
     // Convert to dotted decimal (already in network byte order)
@@ -159,7 +156,7 @@ fn get_interface_ip(iface: &str) -> Option<String> {
     let c = ((ip >> 16) & 0xFF) as u8;
     let d = ((ip >> 24) & 0xFF) as u8;
 
-    Some(format!("{}.{}.{}.{}", a, b, c, d))
+    Some(format!("{a}.{b}.{c}.{d}"))
   }
 }
 
@@ -174,14 +171,13 @@ pub fn get_cpu_model() -> String {
     let content_str = std::str::from_utf8(content).unwrap_or("");
 
     for line in content_str.lines() {
-      if line.starts_with("model name") {
-        if let Some(pos) = line.find(':') {
+      if line.starts_with("model name")
+        && let Some(pos) = line.find(':') {
           let model = line[pos + 1..].trim();
           // Shorten the model name to first 4 words
           let words: Vec<&str> = model.split_whitespace().take(4).collect();
           return words.join(" ");
         }
-      }
     }
   }
 
@@ -240,7 +236,7 @@ pub fn get_uptime_seconds() -> u64 {
   }
 }
 
-/// Gets memory info as (used_kb, total_kb)
+/// Gets memory info as (`used_kb`, `total_kb`)
 #[must_use]
 #[cfg_attr(feature = "hotpath", hotpath::measure)]
 pub fn get_memory_info() -> (u64, u64) {
@@ -282,7 +278,7 @@ pub fn get_memory_info() -> (u64, u64) {
   (used_kb, total_kb)
 }
 
-/// Gets disk info as (used_bytes, total_bytes) for root filesystem
+/// Gets disk info as (`used_bytes`, `total_bytes`) for root filesystem
 #[must_use]
 #[cfg_attr(feature = "hotpath", hotpath::measure)]
 pub fn get_disk_info() -> (u64, u64) {
@@ -375,8 +371,8 @@ pub fn get_gpu() -> String {
 
   // Try to find the primary GPU (card0 or card1)
   for card in ["card0", "card1"] {
-    let vendor_path = format!("/sys/class/drm/{}/device/vendor", card);
-    let device_path = format!("/sys/class/drm/{}/device/device", card);
+    let vendor_path = format!("/sys/class/drm/{card}/device/vendor");
+    let device_path = format!("/sys/class/drm/{card}/device/device");
 
     let vendor =
       if let Ok(bytes_read) = read_file_fast(&vendor_path, &mut buffer) {
@@ -399,7 +395,7 @@ pub fn get_gpu() -> String {
       };
 
     // Get driver name from uevent
-    let uevent_path = format!("/sys/class/drm/{}/device/uevent", card);
+    let uevent_path = format!("/sys/class/drm/{card}/device/uevent");
     let driver =
       if let Ok(bytes_read) = read_file_fast(&uevent_path, &mut buffer) {
         let content = std::str::from_utf8(&buffer[..bytes_read]).unwrap_or("");
@@ -418,13 +414,13 @@ pub fn get_gpu() -> String {
     let gpu_name = match vendor.as_str() {
       "0x1002" => {
         lookup_amd_gpu(device_id)
-          .unwrap_or_else(|| format!("AMD Radeon ({})", driver))
+          .unwrap_or_else(|| format!("AMD Radeon ({driver})"))
       },
       "0x10de" => {
         lookup_nvidia_gpu(device_id)
-          .unwrap_or_else(|| format!("NVIDIA ({})", driver))
+          .unwrap_or_else(|| format!("NVIDIA ({driver})"))
       },
-      "0x8086" => format!("Intel ({})", driver),
+      "0x8086" => format!("Intel ({driver})"),
       _ => continue,
     };
 
@@ -485,20 +481,20 @@ pub fn get_wm() -> String {
   // Check XDG_CURRENT_DESKTOP first
   let desktop = unsafe {
     let ptr = libc::getenv(c"XDG_CURRENT_DESKTOP".as_ptr());
-    if !ptr.is_null() {
-      CStr::from_ptr(ptr).to_str().unwrap_or("").to_string()
-    } else {
+    if ptr.is_null() {
       String::new()
+    } else {
+      CStr::from_ptr(ptr).to_str().unwrap_or("").to_string()
     }
   };
 
   // Get session type (wayland/x11)
   let session_type = unsafe {
     let ptr = libc::getenv(c"XDG_SESSION_TYPE".as_ptr());
-    if !ptr.is_null() {
-      CStr::from_ptr(ptr).to_str().unwrap_or("").to_string()
-    } else {
+    if ptr.is_null() {
       String::new()
+    } else {
+      CStr::from_ptr(ptr).to_str().unwrap_or("").to_string()
     }
   };
 
@@ -515,7 +511,7 @@ pub fn get_wm() -> String {
     desktop
   } else {
     let session_cap = capitalize_first(&session_type);
-    format!("{} ({})", desktop, session_cap)
+    format!("{desktop} ({session_cap})")
   }
 }
 
@@ -550,13 +546,13 @@ pub fn get_terminal() -> String {
   // Fallback to TERM
   let term = unsafe {
     let ptr = libc::getenv(c"TERM".as_ptr());
-    if !ptr.is_null() {
+    if ptr.is_null() {
+      "unknown".to_string()
+    } else {
       CStr::from_ptr(ptr)
         .to_str()
         .unwrap_or("unknown")
         .to_string()
-    } else {
-      "unknown".to_string()
     }
   };
 
@@ -569,7 +565,7 @@ pub fn get_terminal() -> String {
   }
 }
 
-/// Gets swap info as (used_kb, total_kb)
+/// Gets swap info as (`used_kb`, `total_kb`)
 #[must_use]
 #[cfg_attr(feature = "hotpath", hotpath::measure)]
 pub fn get_swap_info() -> (u64, u64) {
