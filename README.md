@@ -32,6 +32,7 @@ cd machinereport && cargo build --release
 
 ## Acknowledgments
 
+- [usgraphics/usgc-machine-report](https://github.com/usgraphics/usgc-machine-report) - Design inspiration
 - [notashelf/microfetch](https://github.com/notashelf/microfetch) - Original project
 - [fastfetch](https://github.com/fastfetch-cli/fastfetch) - GPU detection inspiration
 
