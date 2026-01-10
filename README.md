@@ -10,8 +10,8 @@ Fork of [microfetch](https://github.com/notashelf/microfetch) with improved GPU 
 
 ## Features
 
-- ~600µs execution time (~233x faster than fastfetch)
-- ~370kb binary
+- ~1ms execution time (~140x faster than fastfetch)
+- ~412kb binary
 - Minimal dependencies (only `libc`)
 - Reliable GPU detection (AMD, NVIDIA, Intel, virtual GPUs)
 - Respects `NO_COLOR`
@@ -20,13 +20,13 @@ Fork of [microfetch](https://github.com/notashelf/microfetch) with improved GPU 
 
 ```bash
 # Cargo
-cargo install --git https://github.com/yourusername/machinereport.git
+cargo install --git https://github.com/imaviso/machinereport.git
 
 # Nix
-nix run github:yourusername/machinereport
+nix run github:imaviso/machinereport
 
 # From source
-git clone https://github.com/yourusername/machinereport.git
+git clone https://github.com/imaviso/machinereport.git
 cd machinereport && cargo build --release
 ```
 
