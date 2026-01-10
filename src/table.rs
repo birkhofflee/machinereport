@@ -9,7 +9,7 @@ pub struct TableConfig {
 }
 
 impl TableConfig {
-  #[must_use] 
+  #[must_use]
   pub const fn new(name_width: usize, data_width: usize) -> Self {
     Self {
       name_width,
@@ -18,14 +18,14 @@ impl TableConfig {
   }
 
   /// Total width including borders and padding: "│ NAME │ DATA │"
-  #[must_use] 
+  #[must_use]
   pub const fn total_width(&self) -> usize {
     // │ + space + name + space + │ + space + data + space + │
     1 + 1 + self.name_width + 1 + 1 + 1 + self.data_width + 1 + 1
   }
 
   /// Position of the middle column separator (after "│ NAME ")
-  #[must_use] 
+  #[must_use]
   pub const fn middle_pos(&self) -> usize {
     1 + 1 + self.name_width + 1
   }
@@ -317,7 +317,7 @@ fn truncate_with_ansi(s: &str, max_visible: usize) -> String {
 
 /// Generate a bar graph with colors based on usage percentage
 /// Low usage: green, medium: yellow, high: red
-#[must_use] 
+#[must_use]
 pub fn bar_graph(used: f64, total: f64, width: usize) -> String {
   let c = &*COLORS;
   let percent = if total > 0.0 { used / total } else { 0.0 };
@@ -347,7 +347,7 @@ pub fn bar_graph(used: f64, total: f64, width: usize) -> String {
 }
 
 /// Compact uptime format like: 1d 2h 30m
-#[must_use] 
+#[must_use]
 pub fn format_uptime_compact(seconds: u64) -> String {
   let days = seconds / 86400;
   let hours = (seconds / 3600) % 24;
