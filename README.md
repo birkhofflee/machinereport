@@ -30,6 +30,15 @@ git clone https://github.com/imaviso/machinereport.git
 cd machinereport && cargo build --release
 ```
 
+## Usage
+
+```bash
+machinereport --title="MY MACHINE" # --title is required
+machinereport --version
+```
+
+Titles longer than 50 characters overflow the table border.
+
 ## Acknowledgments
 
 - [usgraphics/usgc-machine-report](https://github.com/usgraphics/usgc-machine-report) - Design inspiration

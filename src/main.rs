@@ -25,7 +25,6 @@ use crate::{
     get_terminal,
     get_uptime_seconds,
     get_username,
-    get_wm,
   },
   table::{
     DividerStyle,
@@ -37,16 +36,62 @@ use crate::{
   },
 };
 
-const REPORT_TITLE: &str = "MACHINEREPORT";
-const REPORT_SUBTITLE: &str = "SYSTEM REPORT";
+const REPORT_SUBTITLE: &str = "MACHINE REPORT";
+const USAGE: &str = "usage: machinereport --title=\"<title>\"";
+
+/// What the command line asked us to do
+enum Command {
+  Version,
+  Report { title: String },
+}
+
+/// Parses the command line, returning a human-readable message on misuse
+fn parse_args<I: Iterator<Item = String>>(args: I) -> Result<Command, String> {
+  let mut args = args;
+  let mut title: Option<String> = None;
+
+  while let Some(arg) = args.next() {
+    match arg.as_str() {
+      "--version" => return Ok(Command::Version),
+      "--title" => {
+        title = Some(
+          args
+            .next()
+            .ok_or_else(|| "--title requires a value".to_owned())?,
+        );
+      },
+      _ => {
+        let value = arg
+          .strip_prefix("--title=")
+          .ok_or_else(|| format!("unknown argument: {arg}"))?;
+        title = Some(value.to_owned());
+      },
+    }
+  }
+
+  title
+    .map(|title| Command::Report { title })
+    .ok_or_else(|| "--title is required".to_owned())
+}
 
 #[cfg_attr(feature = "hotpath", hotpath::main)]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-  if Some("--version") == std::env::args().nth(1).as_deref() {
-    println!("Microfetch {}", env!("CARGO_PKG_VERSION"));
-  } else {
-    let utsname = UtsName::uname()?;
-    print_system_report(&utsname)?;
+  let command = match parse_args(std::env::args().skip(1)) {
+    Ok(command) => command,
+    Err(message) => {
+      eprintln!("machinereport: {message}\n{USAGE}");
+      std::process::exit(1);
+    },
+  };
+
+  match command {
+    Command::Version => {
+      println!("Microfetch {}", env!("CARGO_PKG_VERSION"));
+    },
+    Command::Report { title } => {
+      let utsname = UtsName::uname()?;
+      print_system_report(&utsname, &title)?;
+    },
   }
 
   Ok(())
@@ -56,6 +101,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[allow(clippy::cast_precision_loss)]
 fn print_system_report(
   utsname: &UtsName,
+  title: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
   // Gather all system information
   let os_name = get_os_pretty_name()?;
@@ -66,7 +112,6 @@ fn print_system_report(
   let username = get_username();
   let shell = get_shell();
   let terminal = get_terminal();
-  let wm = get_wm();
   let cpu_model = get_cpu_model();
   let cpu_cores = get_cpu_cores();
   let gpu = get_gpu();
@@ -108,7 +153,7 @@ fn print_system_report(
   let mut output = String::with_capacity(4096);
 
   // Header
-  write_header(&mut output, REPORT_TITLE, REPORT_SUBTITLE);
+  write_header(&mut output, title, REPORT_SUBTITLE);
 
   // OS section
   write_divider(&mut output, DividerStyle::Top);
@@ -122,7 +167,6 @@ fn print_system_report(
   write_row(&mut output, "USER", &username);
   write_row(&mut output, "SHELL", &shell);
   write_row(&mut output, "TERMINAL", &terminal);
-  write_row(&mut output, "WM", &wm);
 
   // Hardware section
   write_divider(&mut output, DividerStyle::Middle);

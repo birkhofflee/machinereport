@@ -1,5 +1,4 @@
 pub mod colors;
-pub mod desktop;
 pub mod release;
 pub mod syscall;
 pub mod system;

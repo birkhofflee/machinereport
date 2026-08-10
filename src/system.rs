@@ -851,47 +851,6 @@ fn lookup_intel_gpu(device_id: &str) -> Option<String> {
   }
 }
 
-/// Gets the desktop environment / window manager
-#[must_use]
-#[cfg_attr(feature = "hotpath", hotpath::measure)]
-pub fn get_wm() -> String {
-  // Check XDG_CURRENT_DESKTOP first
-  let desktop = unsafe {
-    let ptr = libc::getenv(c"XDG_CURRENT_DESKTOP".as_ptr());
-    if ptr.is_null() {
-      String::new()
-    } else {
-      CStr::from_ptr(ptr).to_str().unwrap_or("").to_string()
-    }
-  };
-
-  // Get session type (wayland/x11)
-  let session_type = unsafe {
-    let ptr = libc::getenv(c"XDG_SESSION_TYPE".as_ptr());
-    if ptr.is_null() {
-      String::new()
-    } else {
-      CStr::from_ptr(ptr).to_str().unwrap_or("").to_string()
-    }
-  };
-
-  let desktop = desktop
-    .strip_prefix("none+")
-    .unwrap_or(&desktop)
-    .to_string();
-
-  if desktop.is_empty() && session_type.is_empty() {
-    return "Unknown".to_string();
-  }
-
-  if session_type.is_empty() {
-    desktop
-  } else {
-    let session_cap = capitalize_first(&session_type);
-    format!("{desktop} ({session_cap})")
-  }
-}
-
 /// Gets the terminal emulator name
 #[must_use]
 #[cfg_attr(feature = "hotpath", hotpath::measure)]
@@ -982,13 +941,4 @@ pub fn get_swap_info() -> (u64, u64) {
 
   let used_kb = total_kb.saturating_sub(free_kb);
   (used_kb, total_kb)
-}
-
-/// Capitalize first letter of a string
-fn capitalize_first(s: &str) -> String {
-  let mut chars = s.chars();
-  match chars.next() {
-    None => String::new(),
-    Some(first) => first.to_uppercase().chain(chars).collect(),
-  }
 }
