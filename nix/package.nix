@@ -4,7 +4,7 @@
   stdenvAdapters,
   rustPlatform,
   llvm,
-  useMold ? stdenv.isLinux && !stdenv.hostPlatform.isAarch,
+  useMold ? stdenv.hostPlatform.isLinux && !stdenv.hostPlatform.isAarch,
 }: let
   toml = (lib.importTOML ../Cargo.toml).package;
   pname = toml.name;
